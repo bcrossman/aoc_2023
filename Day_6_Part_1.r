@@ -23,8 +23,7 @@ unglue_data(file,
   pull(combinations) %>% 
   prod()
 
-## Part 3
-
+## Part 2
 
 unglue_data(file, 
             c("Time: {time}",
