@@ -1,6 +1,5 @@
 library(tidyverse)
 library(unglue)
-library(igraph)
 # Prep
 
 file <- readLines("./Day_8/Part_1/input.txt")
