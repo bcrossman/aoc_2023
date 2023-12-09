@@ -22,7 +22,7 @@ for(i in readings){
 }
 results %>% unlist() %>% sum()
 
-## Part 2
+## Part 2 (only change next_x to 0 instead of next)
 
 results <- list()
 count <- 1
