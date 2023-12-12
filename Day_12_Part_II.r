@@ -1,54 +1,46 @@
 library(tidyverse)
-library(unglue)
 
-# Part I
+# Read the file and preprocess
+file <- readLines("./Day_12/Part_1/sample.txt")
+input <- data.frame(value = file)
+input <- separate(input, value, into = c("reading", "result"), sep = " ")
 
-file <- readLines("./Day_12/Part_1/input.txt")
 
-input <- 
-  data.frame(value = file) %>% 
-  mutate(value = trimws(value)) %>% 
-  separate(value, into = c("reading", "result"), sep = " ")
+library(memoise)
 
-generate_combinations <- function(s, partial = "") {
+generate_combinations <- function(s) {
   if (nchar(s) == 0) {
-    return(partial)
+    return("")
   } else {
     first_char <- substr(s, 1, 1)
     rest <- substr(s, 2, nchar(s))
     if (first_char == "?") {
-      return(c(generate_combinations(rest, paste0(partial, ".")),
-               generate_combinations(rest, paste0(partial, "#"))))
+      return(c(paste0(".", generate_combinations(rest)),
+               paste0("#", generate_combinations(rest))))
     } else {
-      return(generate_combinations(rest, paste0(partial, first_char)))
+      return(paste0(first_char, generate_combinations(rest)))
     }
   }
 }
 
-pattern_count <- c()
-for(i in 1:nrow(input)){
-  # i <- 3
-combinations <- data.frame(string_comb = generate_combinations(input$reading[[i]]))
-pattern_needed <- input$result[[i]]
+generate_combinations <- memoise(generate_combinations)
 
-row_result <- 
-combinations %>% 
-  rownames_to_column() %>% 
-  mutate(rowname = as.numeric(rowname)) %>% 
-  separate_rows(string_comb, sep = "") %>% 
-  filter(string_comb != "") %>% 
-  group_by(rowname) %>% 
-  mutate(group_num = cumsum(string_comb != lag(string_comb, 1,"."))) %>% #View()
-  filter(string_comb == "#") %>%  
-  group_by(rowname, group_num) %>% 
-  summarise(n = n()) %>% 
-  group_by(rowname) %>% 
-  summarise(pattern_result = paste(n, collapse = ",")) %>% 
-  filter(pattern_result==pattern_needed) %>% 
-  nrow()
+pattern_count <- integer(nrow(input))
 
-pattern_count <- c(pattern_count, row_result)
+for (i in seq_along(input$reading)) {
+  print(i)
+  combinations <- generate_combinations(paste(rep(input$reading[i], 3), collapse = "?"))
+  pattern_needed <- paste(rep(input$result[i], 3), collapse = ",")
+  
+  row_result <- sum(sapply(strsplit(combinations, ""), function(x) {
+    x <- x[x != ""]
+    grp <- cumsum(c(TRUE, diff(x != ".") != 0))
+    pattern_result <- paste(table(grp[x == "#"]), collapse = ",")
+    pattern_result == pattern_needed
+  }))
+  
+  pattern_count[i] <- row_result
 }
+
+pattern_count
 sum(pattern_count)
-
-
