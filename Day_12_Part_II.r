@@ -10,18 +10,12 @@ input <-
   separate(value, into = c("reading", "result"), sep = " ")
 
 build_pattern <- function(lengths) {
-  # Start with the beginning of the pattern
   pattern <- "^.*"
-  
-  # Check if lengths is not empty
   if (length(lengths) > 0) {
-    # Loop over each element in the vector and build the pattern
     for (len in lengths) {
       pattern <- paste0(pattern, "[#?]{", len, "}.*")
     }
   }
-  
-  # Append the ending pattern
   pattern <- paste0(pattern, ".*$")
   
   return(pattern)
