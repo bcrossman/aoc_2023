@@ -1,15 +1,15 @@
 library(tidyverse)
-library(foreach)
+# library(foreach)
 library(doParallel)
 
 # Register parallel backend
-no_cores <- detectCores() - 1  # Leave one core free for system processes
-registerDoParallel(cores=no_cores)
+# no_cores <- detectCores() - 1  # Leave one core free for system processes
+# registerDoParallel(cores=no_cores)
 
 start_time <- Sys.time()
 times <- 5
 # Read the file and preprocess
-file <- readLines("./Day_12/Part_1/sample.txt")
+file <- readLines("./Day_12/Part_1/input.txt")
 
 input <- 
   data.frame(value = file) %>% 
@@ -93,24 +93,47 @@ generate_combinations <- function(s, thus_far = "", pattern_needed, regex_patter
 
 pattern_count <- integer(nrow(input))
 
-# Using foreach for parallel processing
-results <- foreach(i = seq_along(input$reading), .combine = 'c') %dopar% {
-  # print(paste(i, length(input$reading)))
-  pattern_needed <- paste(rep(input$result[i], times), collapse = ",")
-  combinations <- generate_combinations(paste(rep(input$reading[i], times), collapse = "?"), 
-                                        pattern_needed = pattern_needed,
-                                        regex_pattern = build_pattern(as.numeric(strsplit(pattern_needed, ",")[[1]])))
-  
-  row_result <- sum(sapply(strsplit(combinations, ""), function(x) {
-    x <- x[x != ""]
-    grp <- cumsum(c(TRUE, diff(x != ".") != 0))
-    pattern_result <- paste(table(grp[x == "#"]), collapse = ",")
-    pattern_result == pattern_needed
-  }))
-  return(row_result)
-}
+# # Using foreach for parallel processing
+# results <- foreach(i = seq_along(input$reading), .combine = 'c') %dopar% {
+#   # print(paste(i, length(input$reading)))
+#   pattern_needed <- paste(rep(input$result[i], times), collapse = ",")
+#   combinations <- generate_combinations(paste(rep(input$reading[i], times), collapse = "?"), 
+#                                         pattern_needed = pattern_needed,
+#                                         regex_pattern = build_pattern(as.numeric(strsplit(pattern_needed, ",")[[1]])))
+#   
+#   row_result <- sum(sapply(strsplit(combinations, ""), function(x) {
+#     x <- x[x != ""]
+#     grp <- cumsum(c(TRUE, diff(x != ".") != 0))
+#     pattern_result <- paste(table(grp[x == "#"]), collapse = ",")
+#     pattern_result == pattern_needed
+#   }))
+#   return(row_result)
+# }
+# 
 
+library(future)
+library(progressr)
 
+plan(multisession, workers = detectCores() - 1) # Setup parallel plan
+
+with_progress({
+  p <- progressor(along = input$reading)
+  results <- foreach(i = seq_along(input$reading), .combine = 'c') %dopar% {
+    pattern_needed <- paste(rep(input$result[i], times), collapse = ",")
+    combinations <- generate_combinations(paste(rep(input$reading[i], times), collapse = "?"), 
+                                          pattern_needed = pattern_needed,
+                                          regex_pattern = build_pattern(as.numeric(strsplit(pattern_needed, ",")[[1]])))
+    
+    row_result <- sum(sapply(strsplit(combinations, ""), function(x) {
+      x <- x[x != ""]
+      grp <- cumsum(c(TRUE, diff(x != ".") != 0))
+      pattern_result <- paste(table(grp[x == "#"]), collapse = ",")
+      pattern_result == pattern_needed
+    }))
+    p()  # Signal progress
+    return(row_result)
+  }
+})
 
 pattern_count <- results
 
