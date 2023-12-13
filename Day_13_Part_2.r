@@ -24,7 +24,7 @@ data <-
 
 score <- list()
 for(plot in unique(data$plot_id)){
-  # plot <-  unique(data$plot_id)[[97]]
+  # plot <-  unique(data$plot_id)[[1]]
   print(paste("Plot", plot,"out of", max(data$plot_id)))
  
   target <- 
@@ -52,16 +52,20 @@ for(plot in unique(data$plot_id)){
           filter(colid>(col_check-distance_right))
       }
       
-      result_col <- 
+      intermediary_col <- 
         skinny_target %>% 
         group_by(rowid, colid, map) %>% 
         summarise(n = n()) %>% 
         mutate(n = if_else(colid>col_check, -n, n)) %>% 
         mutate(colid = if_else(colid>col_check, (colid-(colid-col_check)*2)+1, colid)) %>% 
         group_by(rowid, colid, map) %>% 
-        summarise(match = sum(n)==0) %>% 
-        pull(match) %>% 
-        all()
+        summarise(match = abs(sum(n))) %>% 
+        filter(match == 1) %>% 
+        group_by(rowid, colid) %>% 
+        summarise(match = sum(match))
+      
+      
+      result_col <- ((nrow(intermediary_col)==1)&sum(intermediary_col$match==2))
       
       if(result_col){
         score[[paste(plot, col_check, row_check)]] <- col_check
@@ -82,16 +86,20 @@ for(plot in unique(data$plot_id)){
           filter(rowid>(row_check-distance_right))
       }
       
-      result_row <- 
+       intermediary_row <- 
         skinny_target %>% 
         group_by(colid, rowid, map) %>% 
         summarise(n = n()) %>% 
         mutate(n = if_else(rowid>row_check, -n, n)) %>% 
         mutate(rowid = if_else(rowid>row_check, (rowid-(rowid-row_check)*2)+1, rowid)) %>% 
         group_by(rowid, colid, map) %>% 
-        summarise(match = sum(n)==0) %>% 
-        pull(match) %>% 
-        all()
+        summarise(match = abs(sum(n))) %>% 
+        filter(match == 1) %>% 
+         group_by(rowid, colid) %>% 
+        summarise(match = sum(match))
+         
+      
+      result_row <- ((nrow(intermediary_row)==1)&(sum(intermediary_row$match)==2))
       
       
       if(result_row){
@@ -101,7 +109,7 @@ for(plot in unique(data$plot_id)){
       row_check <- row_check+1
     }
     result <- (result_col|result_row)
-    if((row_check==max_row)&(col_check==max_col)){print("BAD TABLE")}
+    if(!result&(row_check==max_row)&(col_check==max_col)){print("BAD TABLE")}
   }
 }
 unlist(score) %>% sum()
