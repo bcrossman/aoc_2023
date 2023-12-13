@@ -77,7 +77,7 @@ while(type != "location"){
   
   for(i in 1:(length(active_map$source_start)-1)){
     if(active_map$source_end[i]+1 != active_map$source_start[i+1]){
-      missing[[as.character(l)]] <- data.frame("source_start" = active_map$source_end[i]+1, "source_end" = active_map$source_start[i+1], movement = 0)
+      missing[[as.character(i)]] <- data.frame("source_start" = active_map$source_end[i]+1, "source_end" = active_map$source_start[i+1], movement = 0)
     }
   }
   missing_df <- bind_rows(missing)
