@@ -57,4 +57,4 @@ lcm_vector <- function(vec) {
 
 result <- lcm_vector(individual_solves)
 
-result %>% scales::comma()
+result %>% as.character()

@@ -101,7 +101,7 @@ for(plot in unique(data$plot_id)){
       row_check <- row_check+1
     }
     result <- (result_col|result_row)
-    if((row_check==max_row)&(col_check==max_col)){print("BAD TABLE")}
+    if(!result&(row_check==max_row)&(col_check==max_col)){print("BAD TABLE")}
   }
 }
 unlist(score) %>% sum()
