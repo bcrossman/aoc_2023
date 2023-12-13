@@ -1,4 +1,11 @@
 library(tidyverse)
+library(foreach)
+library(doParallel)
+
+# Register parallel backend
+no_cores <- detectCores() - 1  # Leave one core free for system processes
+registerDoParallel(cores=no_cores)
+
 start_time <- Sys.time()
 times <- 5
 # Read the file and preprocess
@@ -82,17 +89,17 @@ generate_combinations <- function(s, thus_far = "", pattern_needed, regex_patter
 }
 
 # library(memoise)
-# generate_combinations <- memoise::memoise(generate_combinations)
+# generate_combinations <- memoise(generate_combinations)
+
 pattern_count <- integer(nrow(input))
 
-for (i in seq_along(input$reading)) {
-  print(paste(i,length(input$reading)))
-  # i <- 76
+# Using foreach for parallel processing
+results <- foreach(i = seq_along(input$reading), .combine = 'c') %dopar% {
+  # print(paste(i, length(input$reading)))
   pattern_needed <- paste(rep(input$result[i], times), collapse = ",")
   combinations <- generate_combinations(paste(rep(input$reading[i], times), collapse = "?"), 
                                         pattern_needed = pattern_needed,
                                         regex_pattern = build_pattern(as.numeric(strsplit(pattern_needed, ",")[[1]])))
-  
   
   row_result <- sum(sapply(strsplit(combinations, ""), function(x) {
     x <- x[x != ""]
@@ -100,11 +107,13 @@ for (i in seq_along(input$reading)) {
     pattern_result <- paste(table(grp[x == "#"]), collapse = ",")
     pattern_result == pattern_needed
   }))
-  
-  print(row_result)
-  print(format(Sys.time(), "%H:%M:%S"))
-  pattern_count[i] <- row_result
+  return(row_result)
 }
+
+
+
+pattern_count <- results
+
 end_time <- Sys.time()
 execution_time <- end_time - start_time
 print(paste("Execution time: ", execution_time))
