@@ -36,11 +36,6 @@ lens_box <- tibble(
   lenses = lapply(1:256, function(x) list())
 )
 
-update_box <- function(box_num, label, focal_length, lens_box) {
-  
-  return(lens_box)
-}
-
 # Loop 
 for (i in 1:nrow(instructions)) {
   # i <- 1
