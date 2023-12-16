@@ -1,6 +1,6 @@
 library(tidyverse)
 start_time <- Sys.time()
-times <- 2
+times <- 5
 # Read the file and preprocess
 file <- readLines("./Day_12/Part_1/input.txt")
 
@@ -8,7 +8,7 @@ input <-
   data.frame(value = file) %>% 
   mutate(value = trimws(value)) %>% 
   separate(value, into = c("reading", "result"), sep = " ") %>%
-  slice(1:1000)
+  slice(401:500)
 
 build_pattern <- function(lengths) {
   pattern <- "^.*"
@@ -76,8 +76,8 @@ generate_combinations <- function(s, thus_far = "", pattern_needed, regex_patter
   }
 }
 
-# library(memoise)
-# generate_combinations <- memoise::memoise(generate_combinations)
+library(memoise)
+generate_combinations <- memoise::memoise(generate_combinations)
 pattern_count <- integer(nrow(input))
 
 for (i in seq_along(input$reading)) {
@@ -104,8 +104,8 @@ end_time <- Sys.time()
 execution_time <- end_time - start_time
 print(paste("Execution time: ", execution_time))
 
-write.excel <- function(x,row.names=FALSE,col.names=TRUE,...) {
-  write.table(x,"clipboard",sep="\t",row.names=row.names,col.names=col.names,...)
-}
-data.frame(pattern = pattern_count) %>% write.excel()
+# write.excel <- function(x,row.names=FALSE,col.names=TRUE,...) {
+#   write.table(x,"clipboard",sep="\t",row.names=row.names,col.names=col.names,...)
+# }
+# data.frame(pattern = pattern_count) %>% write.excel()
 sum(pattern_count)
