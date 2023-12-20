@@ -45,14 +45,6 @@ ggplot() +
 
 ## Part 2
 
-hex_to_instruction <- function(hex_code) {
-  
-  
-  # Returning a list of direction and distance
-  list(direction = direction, distance = distance)
-}
-
-
 input <- 
   data.frame(value = file) %>% 
   mutate(value = trimws(value)) %>% 
@@ -103,8 +95,8 @@ path <-
 boundary_df <- path
 boundary_loop <- st_polygon(list(as.matrix(boundary_df[, c("colid", "rowid")])))
 boundary_sf <- st_sfc(boundary_loop)
-st_area(boundary_loop)+nrow(data_long %>% distinct(rowid_seq, colid_seq))/2+1
-
+result <- st_area(boundary_loop)+nrow(data_long %>% distinct(rowid_seq, colid_seq))/2+1
+result %>% as.character()
 
 ggplot() +
   geom_point(data = all_points, aes(x = colid, y = rowid), color = "gray", size = 1) +
