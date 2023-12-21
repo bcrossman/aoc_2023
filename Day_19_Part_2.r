@@ -13,7 +13,6 @@ input <-
                 "(x={x},m={m},a={a},s={s}]"),
               convert = TRUE) 
 
-
 workflow <- 
   input %>% 
   drop_na(workflow) %>% 
@@ -29,24 +28,111 @@ workflow <-
   ungroup() %>% 
   select(-num_parentheses)
 
+
+parts <- data.frame(x_start = 1,
+                    x_end = 4000,
+                    m_start = 1,
+                    m_end = 4000,
+                    a_start = 1,
+                    a_end = 4000,
+                    s_start = 1,
+                    s_end = 4000) %>% 
+  mutate(position = "in")
+
+
+parse_first_if_else <- function(cond_str) {
+  pattern <- "^if_else\\((.)([<>]=?)([0-9]+),'([^']+)',"
+  
+  matches <- regexpr(pattern, cond_str)
+  components <- regmatches(cond_str, matches)
+  
+  variable <- sub(pattern, "\\1", components)
+  operator <- sub(pattern, "\\2", components)
+  number <- as.numeric(sub(pattern, "\\3", components))
+  true_result <- sub(pattern, "\\4", components)
+  
+  false_part_start <- matches + attr(regexpr(pattern, cond_str), "match.length")
+  false_result <- substr(cond_str, false_part_start, nchar(cond_str))
+  
+ ## dumb cleanup
+  false_result <- gsub("\\)\\)$", ")", false_result)
+  if (!grepl("\\(", false_result)) {
+    false_result <- gsub("\\)$", "", false_result)
+  }
+  false_result <- gsub("^'|'$", "", false_result)
+  true_result <- gsub("^'|'$", "", true_result)
+  
+  list(variable = variable,
+       operator = operator,
+       number = number,
+       true_result = true_result,
+       false_result = false_result)
+}
+
+split_dataframe <- function(df, parsed_conditions) {
+  
+  var <- parsed_conditions$variable
+  operator <- parsed_conditions$operator
+  number <- parsed_conditions$number
+  true_result <- parsed_conditions$true_result
+  false_result <- parsed_conditions$false_result
+  
+  # Determine the start and end column names
+  start_col <- paste0(var, "_start")
+  end_col <- paste0(var, "_end")
+  
+  # Copy the original row and create a new row
+  new_row <- original_row <- df[1, ]
+  
+  if (operator == "<") {
+    # Update values for the case when operator is "<"
+    new_row[[start_col]] <- number
+    original_row[[end_col]] <- number - 1
+    new_row[["position"]] <- false_result
+    original_row[["position"]] <- true_result
+  } else if (operator == ">") {
+    # Update values for the case when operator is ">"
+    original_row[[end_col]] <- number
+    new_row[[start_col]] <- number + 1
+    original_row[["position"]] <- false_result
+    new_row[["position"]] <- true_result
+  }
+  
+  # Combine the updated rows to create the final dataframe
+  rbind(original_row, new_row)
+}
+
 accepted <- list()
 counter <- 1
 
-parts <- expand.grid(x = 1:4000, m = 1:4000, a = 1:4000, s = 1:4000)
 while(nrow(parts)>0){
-
-parts <- 
-  parts %>% 
-  left_join(workflow, by = c("position" = "workflow")) %>% 
-  rowwise() %>%
-  mutate(result = eval(parse(text = stuff))) %>%
-  ungroup() %>% 
-  mutate(position = result) %>% 
-  select(-result, -stuff)
-
-accepted[[counter]] <- parts %>% filter(position == "A")
-parts <- parts %>% filter(position != "A") %>% filter(position != "R")
-counter <- counter+1
+  
+  df <- 
+    parts %>% 
+    left_join(workflow, by = c("position" = "workflow")) %>% 
+    mutate(stuff = if_else(is.na(stuff), position, stuff))
+  
+  parts_pieces <- list()
+  for(i in 1:nrow(df)){
+    parts_row <- df[i,]
+    parsed_conditions <- parse_first_if_else(parts_row$stuff[[1]])
+    parts_rows <- split_dataframe(parts_row, parsed_conditions)
+    parts_pieces[[i]] <- parts_rows
+  }
+  parts <- 
+    bind_rows(parts_pieces) %>% 
+    select(-stuff)
+  
+  accepted[[counter]] <- parts %>% filter(position == "A")
+  parts <- parts %>% filter(position != "A") %>% filter(position != "R")
+  counter= counter+1
 }
 
-accepted %>% bind_rows() %>% mutate(total = x+m+a+s) %>% pull(total) %>% sum()
+accepted %>% 
+  bind_rows() %>% 
+  mutate(total = (x_end-x_start+1)*(m_end-m_start+1)*(a_end-a_start+1)*(s_end-s_start+1)) %>% 
+  pull(total) %>% 
+  sum() %>% 
+  scales::comma()
+# 
+# 167409079868000 %>% scales::comma()
