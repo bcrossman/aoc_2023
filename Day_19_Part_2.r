@@ -77,11 +77,9 @@ split_dataframe <- function(df, parsed_conditions) {
   true_result <- parsed_conditions$true_result
   false_result <- parsed_conditions$false_result
   
-  # Determine the start and end column names
   start_col <- paste0(var, "_start")
   end_col <- paste0(var, "_end")
-  
-  # Copy the original row and create a new row
+
   new_row <- original_row <- df[1, ]
   
   if (operator == "<") {
@@ -91,14 +89,12 @@ split_dataframe <- function(df, parsed_conditions) {
     new_row[["position"]] <- false_result
     original_row[["position"]] <- true_result
   } else if (operator == ">") {
-    # Update values for the case when operator is ">"
     original_row[[end_col]] <- number
     new_row[[start_col]] <- number + 1
     original_row[["position"]] <- false_result
     new_row[["position"]] <- true_result
   }
-  
-  # Combine the updated rows to create the final dataframe
+
   rbind(original_row, new_row)
 }
 
